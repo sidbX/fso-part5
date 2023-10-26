@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Blog from './components/Blog'
 import Notification from './components/Notification'
+import Togglable from './components/Togglable'
+import CreateBlogForm from './components/CreateBlogForm'
 import blogService from './services/blogs'
 import loginService from './services/login'
 
@@ -9,13 +11,12 @@ const App = () => {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [user, setUser] = useState(null)
-  const [title, setTitle] = useState('')
-  const [author, setAuthor] = useState('')
-  const [url, setUrl] = useState('')
   const [message, setMessage] = useState('')
+  const createBlogRef = useRef()
 
   useEffect(() => {
     blogService.getAll().then((blogs) => setBlogs(blogs))
+    console.log(blogs)
   }, [])
 
   useEffect(() => {
@@ -47,16 +48,14 @@ const App = () => {
     }
   }
 
-  const handleCreateBlog = async (event) => {
-    event.preventDefault()
+  const createBlog = async (blogToBeCreated) => {
     try {
-      const blogToBeCreated = { title, author, url }
       const createdBlog = await blogService.create(blogToBeCreated)
+      createBlogRef.current.toggleVisibility()
       setBlogs(blogs.concat(createdBlog))
-      setTitle('')
-      setAuthor('')
-      setUrl('')
-      showNotification(`A new blog '${createdBlog.title}' by ${createdBlog.author} added`)
+      showNotification(
+        `A new blog '${createdBlog.title}' by ${createdBlog.author} added`,
+      )
     } catch (exception) {
       showNotification(exception.message)
     }
@@ -112,46 +111,18 @@ const App = () => {
     )
   }
 
-  const createBlogForm = () => {
-    return (
-      <form onSubmit={handleCreateBlog}>
-        <div>
-          title:
-          <input
-            type="text"
-            name="title"
-            value={title}
-            onChange={({ target }) => setTitle(target.value)}
-          />
-        </div>
-        <div>
-          author:
-          <input
-            type="text"
-            name="author"
-            value={author}
-            onChange={({ target }) => setAuthor(target.value)}
-          />
-        </div>
-        <div>
-          url:
-          <input
-            type="text"
-            name="url"
-            value={url}
-            onChange={({ target }) => setUrl(target.value)}
-          />
-        </div>
-        <button type="submit">create</button>
-      </form>
-    )
-  }
-
   return (
     <div>
       <Notification message={message} />
       {user === null && loginForm()}
-      {user !== null && createBlogForm()}
+      {/* {user !== null && createBlogForm()} */}
+      {user !== null && (
+        <Togglable buttonLabel="create new blog" ref={createBlogRef}>
+          {/* {createBlogForm()} */}
+          <CreateBlogForm createBlog={createBlog} />
+        </Togglable>
+      )}
+
       {user !== null && blogsList()}
     </div>
   )
