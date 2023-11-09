@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import _ from 'lodash'
 import Blog from './components/Blog'
 import Notification from './components/Notification'
 import Togglable from './components/Togglable'
@@ -16,7 +17,6 @@ const App = () => {
 
   useEffect(() => {
     blogService.getAll().then((blogs) => setBlogs(blogs))
-    console.log(blogs)
   }, [])
 
   useEffect(() => {
@@ -61,13 +61,37 @@ const App = () => {
     }
   }
 
+  const deleteBlog = async (blogToBeDeleted) => {
+    try {
+      await blogService.deleteBlog(blogToBeDeleted)
+      // const updatedBlogs = _.without(blogs, blogToBeDeleted)
+      setBlogs(_.without(blogs, blogToBeDeleted))
+    } catch (exception) {
+      showNotification(exception.message)
+    }
+  }
+
+  const likeBlog = async (blogToBeLiked) => {
+    try {
+      const updatedBlog = await blogService.addLike(
+        blogToBeLiked.id,
+        blogToBeLiked.likes + 1,
+      )
+      const newBlogs = _.without(blogs, blogToBeLiked).concat(updatedBlog)
+      setBlogs(newBlogs)
+    } catch (exception) {
+      showNotification(exception.message)
+    }
+  }
+
   const loginForm = () => (
     <>
       <h1>log in to application</h1>
-      <form onSubmit={handleLogin}>
+      <form id="loginForm" onSubmit={handleLogin}>
         <div>
           username
           <input
+            id="username"
             type="text"
             value={username}
             name="Username"
@@ -77,13 +101,16 @@ const App = () => {
         <div>
           password
           <input
+            id="password"
             type="password"
             value={password}
             name="Password"
             onChange={({ target }) => setPassword(target.value)}
           />
         </div>
-        <button type="submit">Login</button>
+        <button id="loginButton" type="submit">
+          Login
+        </button>
       </form>
     </>
   )
@@ -104,9 +131,17 @@ const App = () => {
             logout
           </button>
         </p>
-        {blogs.map((blog) => (
-          <Blog key={blog.id} blog={blog} />
-        ))}
+        {blogs
+          .sort((a, b) => b.likes - a.likes)
+          .map((blog) => (
+            <Blog
+              key={blog.id}
+              blog={blog}
+              loggedInUser={user}
+              deleteBlog={deleteBlog}
+              likeBlog={likeBlog}
+            />
+          ))}
       </>
     )
   }
